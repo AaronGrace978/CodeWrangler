@@ -1,0 +1,46 @@
+{
+  "name": "codewrangler",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A book that explains code in everyday words. Created by Aaron Grace, M.Ed.",
+  "author": "Aaron Grace, M.Ed.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/AaronGrace978/CodeWrangler",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AaronGrace978/CodeWrangler.git"
+  },
+  "main": "./out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "preview:web": "vite --config vite.preview.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "postinstall": "node node_modules/electron/install.js",
+    "icons": "python3 scripts/make-icon.py",
+    "dist": "npm run build && electron-builder --publish never"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.6",
+    "@fontsource/literata": "^5.2.8",
+    "@fontsource/source-sans-3": "^5.2.8",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.8",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,0 +1,42 @@
+appId: com.aarongrace.codewrangler
+productName: CodeWrangler
+copyright: Copyright © 2026 Aaron Grace, M.Ed.
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+asar: true
+npmRebuild: false
+mac:
+  category: public.app-category.education
+  icon: build/icon.png
+  identity: null
+  target:
+    - dmg
+    - zip
+win:
+  icon: build/icon.png
+  signAndEditExecutable: false
+  target:
+    - nsis
+    - portable
+linux:
+  icon: build/icon.png
+  category: Education
+  maintainer: Aaron Grace, M.Ed.
+  target:
+    - AppImage
+    - deb
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: CodeWrangler
+publish:
+  provider: github
+  owner: AaronGrace978
+  repo: CodeWrangler
