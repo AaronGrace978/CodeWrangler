@@ -1,5 +1,7 @@
 # CodeWrangler
 
+![CodeWrangler open on a desk. Below the book, a colored bar shows the languages inside it, in the same colors GitHub uses.](docs/readme-banner.png)
+
 A book that explains code in everyday words.
 
 Created by Aaron Grace, M.Ed.
