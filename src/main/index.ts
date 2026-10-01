@@ -20,9 +20,12 @@ function iconFile(): string | undefined {
 }
 
 function preloadFile(): string {
-  const mjs = join(import.meta.dirname, '../preload/index.mjs')
   const js = join(import.meta.dirname, '../preload/index.js')
-  return existsSync(mjs) ? mjs : js
+  const mjs = join(import.meta.dirname, '../preload/index.mjs')
+  // Prefer the CommonJS build. Electron's sandbox rejects an ESM preload,
+  // and without it the book cannot save a key or show a model's reply.
+  if (existsSync(js)) return js
+  return mjs
 }
 
 function installMenu(): void {

@@ -6,6 +6,27 @@ export type StreamPiece = {
   error?: string
 }
 
+/** Split a provider stream into complete lines, keeping a partial tail until the stream ends. */
+export function splitStreamLines(buffer: string, ended: boolean): { lines: string[]; rest: string } {
+  const normalized = buffer.replace(/\r\n/g, '\n')
+  if (!ended) {
+    const parts = normalized.split('\n')
+    const rest = parts.pop() ?? ''
+    return { lines: parts, rest }
+  }
+  return { lines: normalized.split('\n'), rest: '' }
+}
+
+/** Read one Ollama or chat line, including lines wrapped as `data: {...}`. */
+export function parseStreamLine(line: string): unknown | undefined {
+  const trimmed = line.trim()
+  if (!trimmed || trimmed.startsWith(':')) return undefined
+  const data = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed
+  if (!data) return undefined
+  if (data === '[DONE]') return '[DONE]'
+  return JSON.parse(data) as unknown
+}
+
 export function consumeSseBlock(block: string): { event: string; data: string } {
   let event = ''
   const data: string[] = []
@@ -83,12 +104,10 @@ export function interpretStreamPayload(provider: ProviderId, raw: unknown): Stre
   }
 
   if (provider === 'ollama') {
-    if (typeof record.error === 'string') return { text: '', done: true, error: record.error }
+    if (record.error) return { text: '', done: true, error: errorFrom(record) }
     const message = record.message
-    const text =
-      message && typeof message === 'object' && typeof (message as Record<string, unknown>).content === 'string'
-        ? ((message as Record<string, unknown>).content as string)
-        : ''
+    const messageRecord = message && typeof message === 'object' ? (message as Record<string, unknown>) : null
+    const text = messageRecord ? textFromContent(messageRecord.content) : ''
     return { text, done: record.done === true }
   }
 
@@ -125,9 +144,7 @@ export function textFromProviderResponse(provider: ProviderId, payload: unknown)
   }
   if (provider === 'ollama') {
     const message = record.message
-    if (message && typeof message === 'object' && typeof (message as Record<string, unknown>).content === 'string') {
-      return (message as Record<string, unknown>).content as string
-    }
+    if (message && typeof message === 'object') return textFromContent((message as Record<string, unknown>).content)
     return ''
   }
   const choices = Array.isArray(record.choices) ? record.choices : []

@@ -55,11 +55,11 @@ npm run dev
 
 `npm run build` makes the app files. `npm run dist` packs them for the computer you are using.
 
-A release for all three systems is built by GitHub when a version tag is pushed. The tag has to match the version in `package.json`. For this book, that tag is `v1.0.0`.
+A release for all three systems is built by GitHub when a version tag is pushed. The tag has to match the version in `package.json`. For this book, that tag is `v1.0.1`.
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
 ## License

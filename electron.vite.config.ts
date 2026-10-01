@@ -7,7 +7,16 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        output: {
+          // A sandboxed Electron preload cannot load an ESM file.
+          format: 'cjs',
+          entryFileNames: 'index.js'
+        }
+      }
+    }
   },
   renderer: {
     resolve: {

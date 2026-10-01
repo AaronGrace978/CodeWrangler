@@ -9,7 +9,14 @@ import {
 } from '../shared/catalog'
 import { friendlyHttpError, friendlyNetworkError, missingKeyMessage, redactSecrets } from '../shared/errors'
 import { systemPrompt, userPrompt } from '../shared/prompts'
-import { consumeSseBlock, interpretStreamPayload, textFromProviderResponse, type StreamPiece } from '../shared/stream'
+import {
+  consumeSseBlock,
+  interpretStreamPayload,
+  parseStreamLine,
+  splitStreamLines,
+  textFromProviderResponse,
+  type StreamPiece
+} from '../shared/stream'
 import type { CatalogModel, ExplainRequest, ExplainResult, ModelRefresh, ProviderId } from '../shared/types'
 import { activeProvider, keyFor } from './store'
 
@@ -91,27 +98,33 @@ async function readStream(
     return piece.done || Boolean(piece.error)
   }
 
+  const takeOllama = (chunk: string, ended: boolean): boolean => {
+    const split = splitStreamLines(chunk, ended)
+    buffer = split.rest
+    for (const line of split.lines) {
+      let raw: unknown
+      try {
+        raw = parseStreamLine(line)
+      } catch (error) {
+        if (error instanceof SyntaxError) continue
+        throw error
+      }
+      if (raw === undefined) continue
+      if (raw === '[DONE]') return true
+      if (take(raw)) return true
+    }
+    return false
+  }
+
   while (!signal.aborted && !failed) {
     const { done, value } = await reader.read()
     if (done) break
     buffer += decoder.decode(value, { stream: true })
     if (shape === 'ollama') {
-      const lines = buffer.split(/\r?\n/)
-      buffer = lines.pop() ?? ''
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed) continue
-        try {
-          if (take(JSON.parse(trimmed) as unknown)) {
-            await reader.cancel()
-            if (failed) throw new Error(failed)
-            return
-          }
-        } catch (error) {
-          if (failed) throw new Error(failed)
-          if (error instanceof SyntaxError) continue
-          throw error
-        }
+      if (takeOllama(buffer, false)) {
+        await reader.cancel()
+        if (failed) throw new Error(failed)
+        return
       }
       continue
     }
@@ -132,6 +145,21 @@ async function readStream(
         if (failed) throw new Error(failed)
         if (error instanceof SyntaxError) continue
         throw error
+      }
+    }
+  }
+
+  if (!failed && !signal.aborted && buffer.trim()) {
+    if (shape === 'ollama') {
+      if (takeOllama(buffer, true) && failed) throw new Error(failed)
+    } else {
+      const event = consumeSseBlock(buffer)
+      if (event.data && event.data.trim() !== '[DONE]') {
+        try {
+          take(JSON.parse(event.data) as unknown)
+        } catch (error) {
+          if (!(error instanceof SyntaxError)) throw error
+        }
       }
     }
   }

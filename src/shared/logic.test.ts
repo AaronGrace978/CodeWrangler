@@ -5,7 +5,7 @@ import { guessLanguage } from './guess'
 import { bookPage, parseMarkdown } from './markdown'
 import { systemPrompt, userPrompt } from './prompts'
 import { sanitizeExplainRequest, sanitizePatch } from './settings'
-import { consumeSseBlock, interpretStreamPayload, textFromProviderResponse } from './stream'
+import { consumeSseBlock, interpretStreamPayload, parseStreamLine, splitStreamLines, textFromProviderResponse } from './stream'
 import { defaultModels } from './catalog'
 
 describe('settings', () => {
@@ -129,10 +129,18 @@ describe('stream parsing', () => {
     expect(interpretStreamPayload('openrouter', { choices: [{ delta: { content: 'Hi' }, finish_reason: null }] }).text).toBe(
       'Hi'
     )
-    expect(interpretStreamPayload('ollama', { message: { content: 'Hi' }, done: true })).toEqual({
+    expect(interpretStreamPayload('ollama', { message: { content: 'Hi', thinking: 'hidden' }, done: true })).toEqual({
       text: 'Hi',
       done: true
     })
+    expect(interpretStreamPayload('ollama', { error: { message: 'model not found' } })).toEqual({
+      text: '',
+      done: true,
+      error: 'model not found'
+    })
+    expect(splitStreamLines('{"a":1}\n{"b":', false)).toEqual({ lines: ['{"a":1}'], rest: '{"b":' })
+    expect(splitStreamLines('{"a":1}', true).lines).toEqual(['{"a":1}'])
+    expect(parseStreamLine('data: {"message":{"content":"Hi"}}')).toEqual({ message: { content: 'Hi' } })
     expect(consumeSseBlock('event: response.output_text.delta\ndata: {"delta":"Hi"}').event).toBe(
       'response.output_text.delta'
     )
@@ -141,6 +149,7 @@ describe('stream parsing', () => {
   it('reads a finished test reply', () => {
     expect(textFromProviderResponse('openai', { output_text: 'ready' })).toBe('ready')
     expect(textFromProviderResponse('anthropic', { content: [{ type: 'text', text: 'ready' }] })).toBe('ready')
+    expect(textFromProviderResponse('ollama', { message: { content: 'ready', thinking: 'hidden' } })).toBe('ready')
   })
 })
 

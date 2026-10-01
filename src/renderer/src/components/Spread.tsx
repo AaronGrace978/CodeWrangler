@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import type { SpreadRef } from '../book'
 import { aiPages, githubPages } from '../content/chapters'
 import { demos } from '../content/demos'
@@ -43,13 +43,17 @@ function Paper({
   number,
   kicker,
   title,
-  children
+  children,
+  dock,
+  bodyRef
 }: {
   side: 'left' | 'right'
   number: number
   kicker: string
   title: string
   children: ReactNode
+  dock?: ReactNode
+  bodyRef?: RefObject<HTMLDivElement | null>
 }) {
   return (
     <article className={`page page-${side}`} aria-label={`${title}, page ${number}`}>
@@ -57,7 +61,10 @@ function Paper({
         <p className="kicker">{kicker}</p>
         <h2>{title}</h2>
       </header>
-      <div className="page-body">{children}</div>
+      <div className="page-body" ref={bodyRef}>
+        {children}
+      </div>
+      {dock ? <div className="page-dock">{dock}</div> : null}
       <footer className="page-foot">
         <span>{side === 'left' ? 'CodeWrangler' : 'Created by Aaron Grace, M.Ed.'}</span>
         <span className="page-num">{number}</span>
@@ -220,18 +227,22 @@ function RightReading({
   stale: boolean
   ask: ReactNode
 }) {
+  const bodyRef = useRef<HTMLDivElement>(null)
   const showingModel = showModel && (Boolean(modelText) || streaming)
-  const source = showingModel ? (streaming ? 'Writing…' : `Written by ${modelName ?? 'the model'}`) : 'Printed in this book'
+  const source = showingModel ? (streaming ? 'The model is writing' : `Written by ${modelName ?? 'the model'}`) : 'Printed in this book'
   const visible = showingModel ? modelText ?? '' : printed ?? ''
+  const heading = showingModel ? 'What the model said' : title
+  useEffect(() => {
+    if (showingModel) bodyRef.current?.scrollTo({ top: 0 })
+  }, [showingModel])
   return (
-    <Paper side="right" number={number} kicker={source} title={title}>
+    <Paper side="right" number={number} kicker={source} title={heading} bodyRef={bodyRef} dock={ask}>
       <p className="kicker quiet">{kicker}</p>
       {stale && showingModel && (
         <p className="banner">The left page changed after this note was written. Ask again for a fresh reading.</p>
       )}
-      {streaming && !modelText && <p className="writing-note">Writing the page…</p>}
+      {streaming && !modelText && <p className="writing-note">The model is writing on this page.</p>}
       {visible ? <MarkdownView source={visible} /> : <p>This page is waiting for a few lines of code.</p>}
-      {ask}
     </Paper>
   )
 }

@@ -103,6 +103,14 @@ export function SettingsDialog({
   const options = choices.some((model) => model.id === current) ? choices : [{ id: current, label: current }, ...choices]
   const app = window.codewrangler
 
+  async function saveKey(): Promise<PublicSettings | null> {
+    if (!keyDraft.trim()) {
+      setStatus(savedKey?.saved ? 'That key is already saved on this computer. Paste a new one to replace it.' : 'Paste the key, then choose Save key.')
+      if (!savedKey?.saved) return null
+    }
+    return save()
+  }
+
   async function save(): Promise<PublicSettings | null> {
     if (!app) {
       setStatus('Settings are kept inside the CodeWrangler app, on this computer.')
@@ -174,6 +182,57 @@ export function SettingsDialog({
               ))}
             </div>
           </fieldset>
+          <div className="key-save inline-actions">
+            <label>
+              Key for {info.label}
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={keyDraft}
+                onChange={(event) => setKeyDraft(event.target.value)}
+                placeholder={savedKey?.saved ? `A key is saved (${savedKey.hint}). Paste a new one to replace it.` : 'Paste the key'}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <button type="button" className="primary" disabled={busy} onClick={() => void saveKey()}>
+              Save key
+            </button>
+          </div>
+          <div className="inline-actions">
+            <button type="button" onClick={() => setShowKey((value) => !value)}>
+              {showKey ? 'Hide the key' : 'Show the key'}
+            </button>
+            {savedKey?.saved && app && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBusy(true)
+                  void app
+                    .saveSettings({ keys: { [provider]: '' } })
+                    .then((saved) => {
+                      onSaved(saved)
+                      setStatus('The saved key was removed from this computer.')
+                    })
+                    .catch((error: unknown) => setStatus(plainError(error)))
+                    .finally(() => setBusy(false))
+                }}
+              >
+                Remove the saved key
+              </button>
+            )}
+          </div>
+          <p className="fine">{info.keyHelp}</p>
+          <p className="fine">
+            <a
+              href={info.keyUrl}
+              onClick={(event) => {
+                event.preventDefault()
+                void app?.openLink(info.keyUrl)
+              }}
+            >
+              Open the page where {info.label} makes keys
+            </a>
+          </p>
           <label>
             Model
             <select
@@ -227,52 +286,6 @@ export function SettingsDialog({
               autoComplete="off"
             />
           </label>
-          <p className="fine">{info.keyHelp}</p>
-          <p className="fine">
-            <a
-              href={info.keyUrl}
-              onClick={(event) => {
-                event.preventDefault()
-                void app?.openLink(info.keyUrl)
-              }}
-            >
-              Open the page where {info.label} makes keys
-            </a>
-          </p>
-          <label>
-            Key for {info.label}
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={keyDraft}
-              onChange={(event) => setKeyDraft(event.target.value)}
-              placeholder={savedKey?.saved ? `A key is saved (${savedKey.hint}). Paste a new one to replace it.` : 'Paste the key'}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </label>
-          <div className="inline-actions">
-            <button type="button" onClick={() => setShowKey((value) => !value)}>
-              {showKey ? 'Hide the key' : 'Show the key'}
-            </button>
-            {savedKey?.saved && app && (
-              <button
-                type="button"
-                onClick={() => {
-                  setBusy(true)
-                  void app
-                    .saveSettings({ keys: { [provider]: '' } })
-                    .then((saved) => {
-                      onSaved(saved)
-                      setStatus('The saved key was removed from this computer.')
-                    })
-                    .catch((error: unknown) => setStatus(plainError(error)))
-                    .finally(() => setBusy(false))
-                }}
-              >
-                Remove the saved key
-              </button>
-            )}
-          </div>
           <label>
             Reading voice
             <select value={readingLevel} onChange={(event) => setReadingLevel(event.target.value as ReadingLevel)}>
@@ -290,16 +303,21 @@ export function SettingsDialog({
               : ' When this computer can, the key is locked so it is not stored as plain text.'}
           </p>
           <p className="fine">Created by Aaron Grace, M.Ed. CodeWrangler {settings?.version ?? '1.0.0'}.</p>
-          {status && <p role="status" className="status">{status}</p>}
         </div>
         <footer className="dialog-foot">
+          {status && (
+            <p role="status" className="status">
+              {status}
+            </p>
+          )}
+          <div className="inline-actions">
           <button type="button" disabled={busy} onClick={() => void save()}>
             Save settings
           </button>
           <button
             type="button"
             className="primary"
-            disabled={busy || !app}
+            disabled={busy}
             onClick={() => {
               void save().then(async (saved) => {
                 if (!saved || !app) return
@@ -319,6 +337,7 @@ export function SettingsDialog({
           >
             Save and test the key
           </button>
+          </div>
         </footer>
       </div>
     </div>

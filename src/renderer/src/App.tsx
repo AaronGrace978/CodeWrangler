@@ -265,19 +265,21 @@ export function App() {
             <button type="button" onClick={() => turn(-1)} disabled={pos === 0}>
               Previous page
             </button>
-            <p>
-              {spread.label} · pages {pos * 2 + 1}–{pos * 2 + 2}
-              <span className="fine"> Arrow keys turn the page</span>
-            </p>
+            <div>
+              <p>
+                {spread.label} · pages {pos * 2 + 1}–{pos * 2 + 2}
+                <span className="fine"> Arrow keys turn the page</span>
+              </p>
+              <p className="reply-live" role="status">
+                {status}
+              </p>
+            </div>
             <button type="button" onClick={() => turn(1)} disabled={pos === spreads.length - 1}>
               Next page
             </button>
           </div>
         </div>
       </div>
-      <p className="sr-only" role="status">
-        {status}
-      </p>
       <SettingsDialog open={settingsOpen} settings={settings} onClose={() => setSettingsOpen(false)} onSaved={setSettings} />
     </div>
   )
